@@ -4,6 +4,7 @@ import sys
 import os
 import glob
 import re
+import nodes
 
 source = sys.argv[1]
 globs = glob.glob(os.path.join(source,'*.repo'))
@@ -27,7 +28,7 @@ for currentrepo in globs:
         repos[repo_id] = gitraw.Repo(repo_id, repo_url, repo_HEAD)
         repos[repo_id].fulllog = repo_info
 
-print "%d repos with data." % len(repos)
+#print "%d repos with data." % len(repos)
 
 for repo_id in repos:
     repo = repos[repo_id]
@@ -38,6 +39,7 @@ for repo_id in repos:
             if commit is not None:
                 commits.append(commit)
             commit = gitraw.State(line[len("commit "):].strip())
+            commit.repo = repo
         elif line.startswith("Author: "):
             commit.author = line[len("Author: "):].strip()
         elif line.startswith("Date:"):
@@ -62,5 +64,17 @@ for repo_id in repos:
     repo.commits = commits
     repo.fulllog = None
 
-#for i in repos:
-#    print repos[i], len(repos[i].commits)
+node_store = {}
+for repo_id in repos:
+    repo = repos[repo_id]
+    previous_commit = None
+    for c in repo.commits:
+        if c.merge is not None:
+            continue
+        if c.blob_after not in node_store:
+            node_store[c.blob_after] = nodes.Node(c.blob_after)
+        pass #TODO: Handle in/out?
+        node_store[c.blob_after].commits.append(c)
+
+for i in node_store:
+    print node_store[i]
