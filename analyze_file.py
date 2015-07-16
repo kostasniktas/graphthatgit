@@ -68,6 +68,7 @@ node_store = {}
 for repo_id in repos:
     repo = repos[repo_id]
     previous_commit = None
+    previous_node = None
     for c in repo.commits:
         if c.merge is not None:
             continue
@@ -75,6 +76,16 @@ for repo_id in repos:
             node_store[c.blob_after] = nodes.Node(c.blob_after)
         pass #TODO: Handle in/out?
         node_store[c.blob_after].commits.append(c)
+        if previous_node is not None:
+            if previous_node.blob not in node_store[c.blob_after].inward:
+                node_store[c.blob_after].inward[previous_node.blob] = previous_node
+        previous_node = node_store[c.blob_after]
 
-for i in node_store:
-    print node_store[i]
+
+for n in node_store:
+    for i in node_store[n].inward:
+        if n not in node_store[i].outward:
+            node_store[i].outward[n] = node_store[n]
+
+for n in node_store:
+    print node_store[n]
