@@ -8,16 +8,15 @@ class Repo:
         return "%s:%s:%s" % (self.repoid, self.url, self.head)
 
 class State:
-    def __init__(self, commit, mode_before, mode_after, blob_before, blob_after, path):
+    def __init__(self, commit):
         self.commit = commit
-        self.mode_before = mode_before
-        self.mode_after = mode_after
-        self.blob_before = blob_before
-        self.blob_after = blob_after
-        self.path = path
-        # contents = the full contents of file
-        # diff = the diff contents of change
-        pass
+        self.mode_before = None
+        self.mode_after = None
+        self.blob_before = None
+        self.blob_after = None
+        self.path = None
+        self.merge = None
+        self.diff = None
 
     def mode():
         return (self.mode_before, self.mode_after)
