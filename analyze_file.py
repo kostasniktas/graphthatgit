@@ -5,6 +5,7 @@ import os
 import glob
 import re
 import nodes
+import graphviz
 
 source = sys.argv[1]
 globs = glob.glob(os.path.join(source,'*.repo'))
@@ -59,27 +60,40 @@ for repo_id in repos:
                 commit.blob_before = m.group(3).strip()
                 commit.blob_after = m.group(5).strip()
                 commit.path = m.group(7).strip()
+            else:
+                print "m is None for %s" % line
     if commit is not None:
         commits.append(commit)
     repo.commits = commits
     repo.fulllog = None
 
 node_store = {}
+zero = "0000000"
+DESTRUCTION = "%s-DESTRUCTION" % zero
+CREATION = "%s-CREATION" % zero
+node_store[CREATION] = nodes.Node(CREATION)
+node_store[DESTRUCTION] = nodes.Node(DESTRUCTION)
+#node_store[zero] = nodes.Node(zero)
 for repo_id in repos:
     repo = repos[repo_id]
-    previous_commit = None
-    previous_node = None
-    for c in repo.commits:
-        if c.merge is not None:
+    previous_node = node_store[CREATION]
+    for commit in repo.commits:
+        #if previous_node.blob == zero: print "WHAT?"
+        if commit.merge is not None:
             continue
-        if c.blob_after not in node_store:
-            node_store[c.blob_after] = nodes.Node(c.blob_after)
-        pass #TODO: Handle in/out?
-        node_store[c.blob_after].commits.append(c)
-        if previous_node is not None:
-            if previous_node.blob not in node_store[c.blob_after].inward:
-                node_store[c.blob_after].inward[previous_node.blob] = previous_node
-        previous_node = node_store[c.blob_after]
+        if commit.blob_after == zero:
+            current_node = node_store[DESTRUCTION]
+        else:
+            if commit.blob_after not in node_store:
+                node_store[commit.blob_after] = nodes.Node(commit.blob_after)
+            current_node = node_store[commit.blob_after]
+        current_node.commits.append(commit)
+        if previous_node.blob not in current_node.inward:
+            current_node.inward[previous_node.blob] = previous_node
+        previous_node = current_node
+
+#for n in node_store:
+#    print n, node_store[n].blob, len(node_store[n].inward), len(node_store[n].outward)
 
 
 for n in node_store:
@@ -87,5 +101,12 @@ for n in node_store:
         if n not in node_store[i].outward:
             node_store[i].outward[n] = node_store[n]
 
+dot = graphviz.Digraph(comment='par.gradle in stash')
+ignore_empty = False
+# Find the roots
 for n in node_store:
-    print node_store[n]
+    dot.node(n, "Blob[%s]\n(%dc, %di, %do)" % (n, len(node_store[n].commits), len(node_store[n].inward), len(node_store[n].outward)))
+    for o in node_store[n].outward:
+        dot.edge(n,o)
+
+dot.render('testitout', cleanup=True)
