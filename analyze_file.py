@@ -61,6 +61,7 @@ for repo_id in repos:
             m = re.search(":(\d+)\s+(\d+)\s+([a-f0-9]+)(\.{3})?\s+([a-f0-9]+)(\.{3})?\s+[A-Z]\s+(.*)", line)
             if m is not None:
                 if commit.blob_before is not None and commit.blob_after is not None:
+                    # Try to deal with rename case
                     if commit.blob_before == ZERO:
                         commit.mode_before = m.group(1).strip()
                         commit.blob_before = m.group(3).strip()
