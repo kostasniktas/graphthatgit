@@ -112,9 +112,19 @@ node_store[CREATION].inward = {}
 node_store[DESTRUCTION].outward = {}
 #TODO: Doesn't deal with multiple files in one repo correctly.  Maybe just Blob Sha transitions
 
-dot = graphviz.Digraph(comment='par.gradle in stash')
+dot = graphviz.Digraph(comment='par.gradle in stash', graph_attr={"size":"17,11"})
 for n in node_store:
-    dot.node(n, "Blob[%s]\n(%dc, %di, %do)" % (n, len(node_store[n].commits), len(node_store[n].inward), len(node_store[n].outward)))
+    if len(node_store[n].outward) == 0:
+        shape = 'doublecircle'
+    else:
+        shape = 'circle'
+    if n == CREATION:
+        title = "CREATION\n(%dout)" % len(node_store[n].outward)
+    elif n == DESTRUCTION:
+        title = "DESTRUCTION\n(%dcom, %din)" % (len(node_store[n].commits), len(node_store[n].inward))
+    else:
+        title = "%s\n(%dc, %di, %do)" % (n, len(node_store[n].commits), len(node_store[n].inward), len(node_store[n].outward))
+    dot.node(n, title, shape = shape)
     for o in node_store[n].outward:
         dot.edge(n,o)
 
