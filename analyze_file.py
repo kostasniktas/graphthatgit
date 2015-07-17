@@ -37,13 +37,18 @@ for repo_id in repos:
             current_node = node_store[commit.blob_after]
         current_node.commits.append(commit)
         if previous_node.blob not in current_node.inward:
-            current_node.inward[previous_node.blob] = previous_node
+            current_node.inward[previous_node.blob] = (0, previous_node)
+        the_item = current_node.inward[previous_node.blob]
+        current_node.inward[previous_node.blob] = (the_item[0]+1, the_item[1])
         previous_node = current_node
 
 for n in node_store:
     for i in node_store[n].inward:
         if n not in node_store[i].outward:
-            node_store[i].outward[n] = node_store[n]
+            node_store[i].outward[n] = (0, node_store[n])
+            #node_store[i].outward[n] = node_store[n]
+        the_item = node_store[i].outward[n]
+        node_store[i].outward[n] = (the_item[0]+1, the_item[1])
 
 node_store[CREATION].inward = {}
 node_store[DESTRUCTION].outward = {}
@@ -52,6 +57,7 @@ node_store[DESTRUCTION].outward = {}
 dot = graphviz.Digraph(graph_attr={"size":"17,11"})
 dot.body.append(r'label = "%s"' % title_of_graph)
 dot.body.append('fontsize=60')
+include_edge_count = False
 for n in node_store:
     if len(node_store[n].outward) == 0:
         shape = 'doublecircle'
@@ -69,7 +75,11 @@ for n in node_store:
         title = "%s\n(%dc, %di, %do)" % (n, len(node_store[n].commits), len(node_store[n].inward), len(node_store[n].outward))
     dot.node(n, title, shape = shape, style = style, fillcolor = fillcolor)
     for o in node_store[n].outward:
-        dot.edge(n,o)
+        the_count = node_store[n].outward[o][0]
+        if include_edge_count:
+            dot.edge(n,o, label=('f=%d'%the_count))
+        else:
+            dot.edge(n,o)
 dot.render(outputfile, cleanup=True)
 
 
