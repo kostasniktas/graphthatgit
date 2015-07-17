@@ -2,6 +2,7 @@
 import gitraw
 import sys
 import os
+import json
 import glob
 import re
 import nodes
@@ -128,4 +129,25 @@ for n in node_store:
     for o in node_store[n].outward:
         dot.edge(n,o)
 
-dot.render('testitout', cleanup=True)
+dot.render('pargradle', cleanup=True)
+
+
+myjson = {}
+myjson["repos"] = []
+for repo_id in repos:
+    repo = repos[repo_id]
+    repo_json = {"url":repo.url, "HEAD":repo.head, "commits":[]}
+    for commit in repo.commits:
+        repo_json["commits"].append({"sha":commit.commit, "mode_before":commit.mode_before,
+                                     "mode_after":commit.mode_after, "blob_before":commit.blob_before,
+                                     "blob_after":commit.blob_after, "path":commit.path,
+                                     "merge":commit.merge, "author":commit.author, "date":commit.date})
+    myjson["repos"].append(repo_json)
+
+myjson["blobs"] = []
+for n in node_store:
+    node = node_store[n]
+    myjson["blobs"].append({"blob":node.blob, "commits":[x.commit for x in node.commits],
+                            "inblobs":node.inward.keys(), "outblobs":node.outward.keys()})
+with open("pargradle.json","w") as f:
+    f.write(json.dumps(myjson,indent=4))
