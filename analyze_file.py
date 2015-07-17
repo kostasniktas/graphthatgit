@@ -13,6 +13,8 @@ DESTRUCTION = "%s-DESTRUCTION" % parserepolog.ZERO
 CREATION = "%s-CREATION" % parserepolog.ZERO
 
 source = sys.argv[1]
+title_of_graph = sys.argv[3]
+outputfile = sys.argv[2]
 
 repos = parserepolog.RepoLogParseStash(source).parse_repo()
 
@@ -47,23 +49,28 @@ node_store[CREATION].inward = {}
 node_store[DESTRUCTION].outward = {}
 #TODO: Doesn't deal with multiple files in one repo correctly.  Maybe just Blob Sha transitions
 
-dot = graphviz.Digraph(comment='par.gradle in stash', graph_attr={"size":"17,11"})
+dot = graphviz.Digraph(graph_attr={"size":"17,11"})
+dot.body.append(r'label = "%s"' % title_of_graph)
+dot.body.append('fontsize=60')
 for n in node_store:
     if len(node_store[n].outward) == 0:
         shape = 'doublecircle'
+        style = 'filled'
+        fillcolor = 'pink'
     else:
         shape = 'circle'
+        style = ''
+        fillcolor = ''
     if n == CREATION:
         title = "CREATION\n(%dout)" % len(node_store[n].outward)
     elif n == DESTRUCTION:
         title = "DESTRUCTION\n(%dcom, %din)" % (len(node_store[n].commits), len(node_store[n].inward))
     else:
         title = "%s\n(%dc, %di, %do)" % (n, len(node_store[n].commits), len(node_store[n].inward), len(node_store[n].outward))
-    dot.node(n, title, shape = shape)
+    dot.node(n, title, shape = shape, style = style, fillcolor = fillcolor)
     for o in node_store[n].outward:
         dot.edge(n,o)
-
-dot.render('pargradle', cleanup=True)
+dot.render(outputfile, cleanup=True)
 
 
 myjson = {}
@@ -83,5 +90,5 @@ for n in node_store:
     node = node_store[n]
     myjson["blobs"].append({"blob":node.blob, "commits":[x.commit for x in node.commits],
                             "inblobs":node.inward.keys(), "outblobs":node.outward.keys()})
-with open("pargradle.json","w") as f:
+with open("%s.json" % outputfile,"w") as f:
     f.write(json.dumps(myjson,indent=4))
