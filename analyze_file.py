@@ -14,7 +14,7 @@ CREATION = "%s-CREATION" % parserepolog.ZERO
 
 source = sys.argv[1]
 
-repos = parserepolog.RepoLogParse(source).parse_repo()
+repos = parserepolog.RepoLogParseStash(source).parse_repo()
 
 node_store = {}
 node_store[CREATION] = nodes.Node(CREATION)

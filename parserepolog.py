@@ -6,7 +6,7 @@ import re
 
 ZERO = "0000000"
 
-class RepoLogParse:
+class RepoLogParseStash:
     def __init__(self, directory):
         self.directory = directory
 
