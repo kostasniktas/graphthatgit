@@ -18,7 +18,6 @@ class State:
         self.merge = None
         self.diff = None
         self.repo = None
-        #TODO: Store off the commits in the repo by hash as well?
         pass
 
     def mode():

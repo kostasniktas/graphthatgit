@@ -7,6 +7,10 @@ import re
 import nodes
 import graphviz
 
+ZERO = "0000000"
+DESTRUCTION = "%s-DESTRUCTION" % ZERO
+CREATION = "%s-CREATION" % ZERO
+
 source = sys.argv[1]
 globs = glob.glob(os.path.join(source,'*.repo'))
 # just regex it for id
@@ -55,11 +59,20 @@ for repo_id in repos:
         elif line.startswith(":"):
             m = re.search(":(\d+)\s+(\d+)\s+([a-f0-9]+)(\.{3})?\s+([a-f0-9]+)(\.{3})?\s+[A-Z]\s+(.*)", line)
             if m is not None:
-                commit.mode_before = m.group(1).strip()
-                commit.mode_after = m.group(2).strip()
-                commit.blob_before = m.group(3).strip()
-                commit.blob_after = m.group(5).strip()
-                commit.path = m.group(7).strip()
+                if commit.blob_before is not None and commit.blob_after is not None:
+                    if commit.blob_before == ZERO:
+                        commit.mode_before = m.group(1).strip()
+                        commit.blob_before = m.group(3).strip()
+                        commit.path = m.group(7).strip()
+                    if commit.blob_after == ZERO:
+                        commit.mode_after = m.group(2).strip()
+                        commit.blob_after = m.group(5).strip()
+                else:
+                    commit.mode_before = m.group(1).strip()
+                    commit.mode_after = m.group(2).strip()
+                    commit.blob_before = m.group(3).strip()
+                    commit.blob_after = m.group(5).strip()
+                    commit.path = m.group(7).strip()
             else:
                 print "m is None for %s" % line
     if commit is not None:
@@ -68,20 +81,18 @@ for repo_id in repos:
     repo.fulllog = None
 
 node_store = {}
-zero = "0000000"
-DESTRUCTION = "%s-DESTRUCTION" % zero
-CREATION = "%s-CREATION" % zero
 node_store[CREATION] = nodes.Node(CREATION)
 node_store[DESTRUCTION] = nodes.Node(DESTRUCTION)
-#node_store[zero] = nodes.Node(zero)
 for repo_id in repos:
     repo = repos[repo_id]
-    previous_node = node_store[CREATION]
+    #previous_node = node_store[CREATION]
+    previous_node = None
     for commit in repo.commits:
-        #if previous_node.blob == zero: print "WHAT?"
         if commit.merge is not None:
             continue
-        if commit.blob_after == zero:
+        if commit.blob_before == ZERO:
+            previous_node = node_store[CREATION]
+        if commit.blob_after == ZERO:
             current_node = node_store[DESTRUCTION]
         else:
             if commit.blob_after not in node_store:
@@ -92,18 +103,16 @@ for repo_id in repos:
             current_node.inward[previous_node.blob] = previous_node
         previous_node = current_node
 
-#for n in node_store:
-#    print n, node_store[n].blob, len(node_store[n].inward), len(node_store[n].outward)
-
-
 for n in node_store:
     for i in node_store[n].inward:
         if n not in node_store[i].outward:
             node_store[i].outward[n] = node_store[n]
 
+node_store[CREATION].inward = {}
+node_store[DESTRUCTION].outward = {}
+#TODO: Doesn't deal with multiple files in one repo correctly.  Maybe just Blob Sha transitions
+
 dot = graphviz.Digraph(comment='par.gradle in stash')
-ignore_empty = False
-# Find the roots
 for n in node_store:
     dot.node(n, "Blob[%s]\n(%dc, %di, %do)" % (n, len(node_store[n].commits), len(node_store[n].inward), len(node_store[n].outward)))
     for o in node_store[n].outward:
